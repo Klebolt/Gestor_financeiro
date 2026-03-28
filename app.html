@@ -7,14 +7,14 @@
         <title>Gestor Financeiro PRO</title>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script
-            src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
         <style>
         /* --- MESMO CSS PREMIUM DA VERSÃO 6 --- */
         :root {
             --primary-color: #2c3e50; --accent-red: #e74c3c; --accent-yellow: #f1c40f; 
-            --status-pago: #2ecc71; --status-pendente: #e67e22; 
+            --status-pago: #2ecc71; --status-pendente: #e67e22; --accent-green: #27ae60;
             --bg-body: #ecf0f1; --bg-element: #ffffff; --text-color: #333333;
             --text-muted: #7f8c8d; --border-color: #dddddd; --row-hover: #f1f2f6; --row-retro: #fff5f5;
         }
@@ -54,6 +54,13 @@
         
         .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { background: var(--bg-element); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid transparent; }
+        
+        /* NOVAS CORES PARA RECEITAS E SALDO */
+        .card.receita { border-left-color: var(--accent-green); }
+        .card.saldo { border-left-color: #34495e; background-color: #34495e; color: white;}
+        .card.saldo h3 { color: #ecf0f1;}
+        .card.saldo .value { color: white; font-size: 1.6rem;}
+        
         .card.fixo { border-left-color: var(--accent-yellow); }
         .card.retro { border-left-color: var(--accent-red); }
         .card.total { border-left-color: var(--primary-color); }
@@ -61,6 +68,7 @@
         .card.pago { border-left-color: var(--status-pago); }
         .card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
         .card .value { font-size: 1.4rem; font-weight: bold; color: var(--primary-color); word-break: break-all;}
+        .card.receita .value { color: var(--accent-green); }
         .card.pendente .value { color: var(--status-pendente); }
         .card.pago .value { color: var(--status-pago); }
 
@@ -72,14 +80,18 @@
         .search-bar { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; width: 100%; font-size: 1rem; background: var(--bg-body); color: var(--text-color);}
         .controls select { padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); font-weight: bold; width: 100%; background: var(--bg-body); color: var(--text-color);}
 
-        .table-container { background: var(--bg-element); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; }
-        table { width: 100%; border-collapse: collapse; }
+        .table-container { background: var(--bg-element); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color); color: var(--primary-color); font-size: 0.85rem; text-transform: uppercase; cursor: pointer; user-select: none;}
         td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         tr:hover { background-color: var(--row-hover); }
         tr.category-retroativo { background-color: var(--row-retro); }
         
         .val-money { font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+        /* NOVAS CORES NA TABELA */
+        .val-receita { color: var(--accent-green); }
+        .val-despesa { color: var(--accent-red); }
+
         .status-badge { padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: white; cursor: pointer; border: none; width: 100%; max-width: 100px;}
         .status-pago { background-color: var(--status-pago); }
         .status-pendente { background-color: var(--status-pendente); }
@@ -96,6 +108,7 @@
             .controls-group { flex-direction: column; align-items: flex-start; }
             .header-actions { width: 100%; justify-content: space-between; }
             table, thead, tbody, th, td, tr { display: block; }
+            table { min-width: 100%; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
             tr { border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background-color: var(--bg-element); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
             td { border: none; border-bottom: 1px solid var(--border-color); position: relative; padding-left: 50%; text-align: right; min-height: 45px; display: flex; justify-content: space-between; align-items: center;}
@@ -128,9 +141,17 @@
             <section class="form-section">
                 <h3 id="form-title"
                     style="color: var(--primary-color); margin-bottom: 15px;">➕
-                    Nova Despesa</h3>
+                    Novo Lançamento</h3>
                 <form id="form-despesa">
                     <input type="hidden" id="input-id">
+
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="input-tipo" required>
+                            <option value="Despesa">🔴 Despesa</option>
+                            <option value="Receita">🟢 Receita</option>
+                        </select>
+                    </div>
 
                     <div class="form-group"><label>Descrição</label><input
                             type="text" id="input-desc" required
@@ -179,21 +200,24 @@
                         </select>
                     </div>
 
-                    <div class="form-group"><label>Mês Pgto</label>
-                        <select id="input-mes-pgto" required>
-                            <option value="Janeiro">Janeiro</option><option
-                                value="Fevereiro">Fevereiro</option><option
-                                value="Março">Março</option><option
-                                value="Abril">Abril</option><option
-                                value="Maio">Maio</option><option
-                                value="Junho">Junho</option><option
-                                value="Julho">Julho</option><option
-                                value="Agosto">Agosto</option><option
-                                value="Setembro">Setembro</option><option
-                                value="Outubro">Outubro</option><option
-                                value="Novembro">Novembro</option><option
-                                value="Dezembro">Dezembro</option>
-                        </select>
+                    <div class="form-group"><label>Mês / Ano Pgto</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select id="input-mes-pgto" required>
+                                <option value="Janeiro">Jan</option><option
+                                    value="Fevereiro">Fev</option><option
+                                    value="Março">Mar</option><option
+                                    value="Abril">Abr</option><option
+                                    value="Maio">Mai</option><option
+                                    value="Junho">Jun</option><option
+                                    value="Julho">Jul</option><option
+                                    value="Agosto">Ago</option><option
+                                    value="Setembro">Set</option><option
+                                    value="Outubro">Out</option><option
+                                    value="Novembro">Nov</option><option
+                                    value="Dezembro">Dez</option>
+                            </select>
+                            <input type="number" id="input-ano" value="2026" style="width: 80px;" required>
+                        </div>
                     </div>
 
                     <div class="form-group"><label>Status</label>
@@ -222,18 +246,13 @@
             </section>
 
             <section class="dashboard">
-                <div class="card fixo"><h3 id="label-fixas">Fixas</h3><div
-                        class="value" id="card-fixas">R$ 0,00</div></div>
-                <div class="card retro"><h3
-                        id="label-retro">Retroativos</h3><div class="value"
-                        id="card-retroativas">R$ 0,00</div></div>
-                <div class="card total"><h3 id="label-total">Total Mês</h3><div
-                        class="value" id="card-total">R$ 0,00</div></div>
-                <div class="card pendente"><h3 id="label-pendente">A
-                        Pagar</h3><div class="value" id="card-pendente">R$
-                        0,00</div></div>
-                <div class="card pago"><h3 id="label-pago">Já Pago</h3><div
-                        class="value" id="card-pago">R$ 0,00</div></div>
+                <div class="card receita"><h3 id="label-receitas">Receitas</h3><div class="value" id="card-receitas">R$ 0,00</div></div>
+                <div class="card total"><h3 id="label-total">Despesas</h3><div class="value" id="card-total">R$ 0,00</div></div>
+                <div class="card saldo"><h3 id="label-saldo">Saldo Líquido</h3><div class="value" id="card-saldo">R$ 0,00</div></div>
+                <div class="card fixo"><h3 id="label-fixas">Fixas</h3><div class="value" id="card-fixas">R$ 0,00</div></div>
+                <div class="card retro"><h3 id="label-retro">Retroativos</h3><div class="value" id="card-retroativas">R$ 0,00</div></div>
+                <div class="card pendente"><h3 id="label-pendente">A Pagar (Despesas)</h3><div class="value" id="card-pendente">R$ 0,00</div></div>
+                <div class="card pago"><h3 id="label-pago">Já Pago (Despesas)</h3><div class="value" id="card-pago">R$ 0,00</div></div>
             </section>
 
             <section class="charts-container">
@@ -244,10 +263,12 @@
 
             <section class="controls">
                 <div class="controls-group">
-                    <label style="color: var(--text-muted);">Mês do
-                        Caixa:</label>
+                    <label style="color: var(--text-muted);">Período:</label>
                     <select id="month-filter">
                         <option value="Todos">Ver Todos</option>
+                        <option value="Janeiro">Janeiro</option>
+                        <option value="Fevereiro">Fevereiro</option>
+                        <option value="Março">Março</option>
                         <option value="Abril" selected>Abril</option>
                         <option value="Maio">Maio</option>
                         <option value="Junho">Junho</option>
@@ -257,6 +278,11 @@
                         <option value="Outubro">Outubro</option>
                         <option value="Novembro">Novembro</option>
                         <option value="Dezembro">Dezembro</option>
+                    </select>
+                    <select id="year-filter" style="width: auto;">
+                        <option value="Todos">Todos</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
                     </select>
                 </div>
                 <div class="controls-group">
@@ -270,14 +296,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th onclick="ordenarTabela('mesRef')">Mês Ref.
-                                ↕</th>
+                            <th onclick="ordenarTabela('tipo')">Tipo ↕</th>
                             <th onclick="ordenarTabela('desc')">Descrição ↕</th>
                             <th onclick="ordenarTabela('cat')">Categoria ↕</th>
                             <th onclick="ordenarTabela('valor')"
                                 style="text-align: right;">Valor ↕</th>
-                            <th onclick="ordenarTabela('mesPgto')">Mês Pgto
-                                ↕</th>
+                            <th onclick="ordenarTabela('mesPgto')">Mês/Ano ↕</th>
                             <th style="text-align: center;">Status</th>
                             <th style="text-align: center;">Ações</th>
                         </tr>
@@ -295,6 +319,11 @@
     const supabaseKey = 'sb_publishable_jzIwu_Z27ir5YBWrPGO4iw_In0DSd1G'; 
     const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+    // CONFIGURAÇÃO DOS ALERTAS PREMIUM (SweetAlert2)
+    const Toast = Swal.mixin({
+        toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+    });
+
     let despesas = [];
     let usuarioAtual = null;
     let chartCat = null; let chartMeses = null;
@@ -305,13 +334,12 @@
     async function iniciarApp() {
         const { data: { session } } = await clienteSupabase.auth.getSession();
         if (!session) {
-            window.location.href = 'index.html'; // Se não estiver logado, chuta pro Login
+            window.location.href = 'index.html'; 
             return;
         }
         usuarioAtual = session.user;
         document.getElementById('info-usuario').textContent = usuarioAtual.email;
         
-        // Puxa os dados reais da nuvem!
         await carregarDespesasDoBanco();
     }
 
@@ -322,18 +350,19 @@
 
     // --- COMUNICAÇÃO COM O BANCO DE DADOS (SUPABASE) ---
     async function carregarDespesasDoBanco() {
-        // Busca os dados da tabela
         const { data, error } = await clienteSupabase.from('despesas').select('*');
         
         if (error) {
             console.error("Erro ao carregar dados:", error);
-            alert("Erro ao buscar dados na nuvem!");
+            Swal.fire('Erro!', 'Falha ao buscar dados na nuvem.', 'error');
             return;
         }
 
-        // Converte os nomes das colunas do banco para o padrão que já usávamos no JS
+        // AGORA LÊ O TIPO E O ANO
         despesas = data.map(item => ({
             id: item.id,
+            tipo: item.tipo || 'Despesa', // Fallback se for antigo
+            ano: item.ano || '2026',      // Fallback se for antigo
             desc: item.descricao,
             cat: item.categoria,
             valor: parseFloat(item.valor),
@@ -343,10 +372,10 @@
         }));
 
         renderizarInterface();
-        atualizarDropdownCategorias(); // <--- SÓ ADICIONAR ESTA LINHA AQUI!
+        atualizarDropdownCategorias(); 
     }
 
-    // --- TEMA ESCURO (Mantido) ---
+    // --- TEMA ESCURO ---
     const currentTheme = localStorage.getItem('theme_v6') || 'light';
     if (currentTheme === 'dark') { document.body.setAttribute('data-theme', 'dark'); }
     function toggleTheme() {
@@ -356,95 +385,110 @@
         } else {
             document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('theme_v6', 'dark');
         }
-        renderizarGraficos(despesas);
+        // Gráficos atualizam focando só em despesas
+        renderizarGraficos(despesas.filter(d => d.tipo === 'Despesa'));
     }
 
-    // --- LÓGICA DE INTERFACE (Gráficos, Tabela, Cálculos) ---
+    // --- LÓGICA DE INTERFACE ---
     const formatarMoeda = (valor) => parseFloat(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     function renderizarInterface() {
         const mesFiltroAtual = document.getElementById('month-filter').value;
+        const anoFiltroAtual = document.getElementById('year-filter').value;
         const termoBusca = document.getElementById('search-input').value.toLowerCase();
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
         
-        let sFixas = 0, sRetro = 0, sTotal = 0, sPendente = 0, sPago = 0;
+        let sFixas = 0, sRetro = 0, sTotalDespesas = 0, sPendente = 0, sPago = 0, sReceitas = 0;
         let dadosFiltrados = despesas;
 
+        // Filtros (Mês, Ano e Busca)
         if (mesFiltroAtual !== 'Todos') dadosFiltrados = dadosFiltrados.filter(d => d.mesPgto === mesFiltroAtual);
+        if (anoFiltroAtual !== 'Todos') dadosFiltrados = dadosFiltrados.filter(d => d.ano === anoFiltroAtual);
         if (termoBusca) dadosFiltrados = dadosFiltrados.filter(d => d.desc.toLowerCase().includes(termoBusca) || d.cat.toLowerCase().includes(termoBusca));
 
-        dadosFiltrados.forEach(despesa => {
-            sTotal += parseFloat(despesa.valor);
-            if (despesa.cat === 'Retroativo') sRetro += parseFloat(despesa.valor);
-            else sFixas += parseFloat(despesa.valor);
+        dadosFiltrados.forEach(item => {
+            if (item.tipo === 'Receita') {
+                sReceitas += parseFloat(item.valor);
+            } else {
+                sTotalDespesas += parseFloat(item.valor);
+                if (item.cat === 'Retroativo') sRetro += parseFloat(item.valor);
+                else sFixas += parseFloat(item.valor);
 
-            if (despesa.status === 'Pendente') sPendente += parseFloat(despesa.valor);
-            else sPago += parseFloat(despesa.valor);
+                if (item.status === 'Pendente') sPendente += parseFloat(item.valor);
+                else sPago += parseFloat(item.valor);
+            }
             
+            const sinalClass = item.tipo === 'Receita' ? 'val-receita' : 'val-despesa';
+            const sinalTexto = item.tipo === 'Receita' ? '+ ' : '- ';
+            const tipoLabel = item.tipo === 'Receita' ? '🟢 Receita' : '🔴 Despesa';
+
             tbody.innerHTML += `
-                <tr class="category-${despesa.cat.toLowerCase()}">
-                    <td data-label="Mês Ref.">${despesa.mesRef}</td>
-                    <td data-label="Descrição">${despesa.desc}</td>
-                    <td data-label="Categoria">${despesa.cat}</td>
-                    <td data-label="Valor (R$)" class="val-money">${formatarMoeda(despesa.valor)}</td>
-                    <td data-label="Mês Pgto" style="font-weight:bold">${despesa.mesPgto}</td>
+                <tr class="category-${item.cat.toLowerCase()}">
+                    <td data-label="Tipo">${tipoLabel}</td>
+                    <td data-label="Descrição">${item.desc}</td>
+                    <td data-label="Categoria">${item.cat}</td>
+                    <td data-label="Valor (R$)" class="val-money ${sinalClass}">${sinalTexto}${formatarMoeda(item.valor)}</td>
+                    <td data-label="Mês/Ano Pgto" style="font-weight:bold">${item.mesPgto}/${item.ano}</td>
                     <td data-label="Status" style="text-align: right;">
-                        <button class="status-badge ${despesa.status === 'Pago' ? 'status-pago' : 'status-pendente'}" onclick="alternarStatus('${despesa.id}')">${despesa.status}</button>
+                        <button class="status-badge ${item.status === 'Pago' ? 'status-pago' : 'status-pendente'}" onclick="alternarStatus('${item.id}')">${item.status}</button>
                     </td>
                     <td data-label="Ações" class="acoes-td">
-                        <button class="btn-acao btn-editar" onclick="carregarEdicao('${despesa.id}')">✏️</button>
-                        <button class="btn-acao btn-excluir" onclick="deletarRegistro('${despesa.id}')">❌</button>
+                        <button class="btn-acao btn-editar" onclick="carregarEdicao('${item.id}')">✏️</button>
+                        <button class="btn-acao btn-excluir" onclick="deletarRegistro('${item.id}')">❌</button>
                     </td>
                 </tr>
             `;
         });
 
+        const sSaldo = sReceitas - sTotalDespesas;
+
+        // Atualiza os Cards
+        document.getElementById('card-receitas').textContent = formatarMoeda(sReceitas);
+        document.getElementById('card-total').textContent = formatarMoeda(sTotalDespesas);
+        
+        const cardSaldo = document.getElementById('card-saldo');
+        cardSaldo.textContent = formatarMoeda(sSaldo);
+        if(sSaldo >= 0) { cardSaldo.style.color = 'var(--accent-green)'; } else { cardSaldo.style.color = '#ff6b6b'; }
+
         document.getElementById('card-fixas').textContent = formatarMoeda(sFixas);
         document.getElementById('card-retroativas').textContent = formatarMoeda(sRetro);
-        document.getElementById('card-total').textContent = formatarMoeda(sTotal);
         document.getElementById('card-pendente').textContent = formatarMoeda(sPendente);
         document.getElementById('card-pago').textContent = formatarMoeda(sPago);
 
-        gerarInsights(sTotal, sRetro, sPago);
-        renderizarGraficos(dadosFiltrados);
+        gerarInsights(sReceitas, sTotalDespesas, sSaldo);
+        // Gráficos focam só nas despesas para mostrar onde o dinheiro está indo
+        renderizarGraficos(dadosFiltrados.filter(d => d.tipo === 'Despesa'));
     }
 
-    function gerarInsights(totalMes, totalRetro, totalPago) {
+    function gerarInsights(receitas, despesas, saldo) {
         const pInsight = document.getElementById('texto-insight');
         const mesFiltroAtual = document.getElementById('month-filter').value;
-        if (mesFiltroAtual === 'Todos') { pInsight.innerHTML = "Selecione um mês específico para análises automáticas."; return; }
-        if (totalMes === 0) { pInsight.innerHTML = `Sua tabela de <b>${mesFiltroAtual}</b> está vazia na nuvem. Adicione novas despesas!`; return; }
+        const anoFiltroAtual = document.getElementById('year-filter').value;
 
-        const percRetro = ((totalRetro / totalMes) * 100).toFixed(0);
-        const percPago = ((totalPago / totalMes) * 100).toFixed(0);
-        
-        let texto = `Previsão de <b>${mesFiltroAtual}</b>: ${formatarMoeda(totalMes)}. `;
-        if (percRetro > 30) texto += `⚠️ <b>Atenção:</b> Retroativos consomem <b>${percRetro}%</b> do orçamento. `;
-        else if (totalRetro === 0) texto += `✅ <b>Excelente:</b> Nenhum retroativo atrasado pesando no mês! `;
-        
-        if (percPago == 100) texto += `🏆 <b>Parabéns!</b> Contas do mês quitadas.`;
-        else if (percPago > 50) texto += `📈 Você já liquidou <b>${percPago}%</b> das pendências.`;
+        if (mesFiltroAtual === 'Todos') { pInsight.innerHTML = "Selecione um mês específico para análises automáticas."; return; }
+        if (receitas === 0 && despesas === 0) { pInsight.innerHTML = `O período de <b>${mesFiltroAtual}/${anoFiltroAtual}</b> está vazio na nuvem.`; return; }
+
+        let texto = `Resumo de <b>${mesFiltroAtual}/${anoFiltroAtual}</b>: `;
+        if (saldo >= 0) texto += `✅ Excelente! Você está fechando o período no azul, com sobra de <b>${formatarMoeda(saldo)}</b>.`;
+        else texto += `⚠️ Cuidado! Suas despesas ultrapassam as receitas em <b>${formatarMoeda(Math.abs(saldo))}</b>.`;
         
         pInsight.innerHTML = texto;
     }
 
-    function renderizarGraficos(dadosVisiveis) {
+    function renderizarGraficos(dadosDespesas) {
         const isDark = document.body.getAttribute('data-theme') === 'dark';
         const fontColor = isDark ? '#e0e0e0' : '#333333';
         Chart.defaults.color = fontColor;
 
-        // 1. Gráfico de Pizza (AGORA 100% AUTOMÁTICO PARA INFINITAS CATEGORIAS)
         const categorias = {};
-        dadosVisiveis.forEach(d => {
+        dadosDespesas.forEach(d => {
             if (!categorias[d.cat]) categorias[d.cat] = 0;
             categorias[d.cat] += parseFloat(d.valor);
         });
 
         const labelsCat = Object.keys(categorias);
         const dataCat = Object.values(categorias);
-        
-        // Paleta de cores profissionais que se repetem caso você crie muitas categorias
         const paletaCores = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#ff9ff3', '#00d2d3'];
         const coresCat = labelsCat.map((_, index) => paletaCores[index % paletaCores.length]);
 
@@ -452,12 +496,11 @@
         chartCat = new Chart(document.getElementById('graficoCategoria'), {
             type: 'doughnut', 
             data: { labels: labelsCat, datasets: [{ data: dataCat, backgroundColor: coresCat, borderWidth: isDark ? 0 : 2 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Distribuição Atual' } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Distribuição de Despesas' } } }
         });
 
-        // 2. Gráfico de Barras (Meses)
         const mesesTotais = {};
-        despesas.forEach(d => { 
+        dadosDespesas.forEach(d => { 
             if(mesesTotais[d.mesPgto] === undefined) mesesTotais[d.mesPgto] = 0;
             mesesTotais[d.mesPgto] += parseFloat(d.valor); 
         });
@@ -472,59 +515,52 @@
         });
     }
 
-    // --- SALVAR, ATUALIZAR, DELETAR NO BANCO ---
+    // --- SALVAR, ATUALIZAR, DELETAR ---
     function verificarParcelamento() {
         const cat = document.getElementById('input-cat').value;
         const inputId = document.getElementById('input-id').value;
         document.getElementById('grupo-parcelas').style.display = (cat === 'Parcelamento' && !inputId) ? 'flex' : 'none';
     }
 
-    // --- NOVA LÓGICA DE CATEGORIAS DINÂMICAS ---
-    function adicionarNovaCategoria() {
-        const novaCat = prompt("Digite o nome da nova categoria (ex: Lazer, Supermercado):");
+    // NOVA LÓGICA DE CATEGORIAS COM ALERTA PREMIUM
+    async function adicionarNovaCategoria() {
+        const { value: novaCat } = await Swal.fire({
+            title: 'Nova Categoria',
+            input: 'text',
+            inputLabel: 'Ex: Lazer, Supermercado, Salário',
+            showCancelButton: true,
+            confirmButtonText: 'Criar',
+            cancelButtonText: 'Cancelar'
+        });
+
         if (novaCat && novaCat.trim() !== "") {
             const select = document.getElementById('input-cat');
-            
-            // Verifica se a categoria já existe na lista para não duplicar
             let existe = false;
             for(let i = 0; i < select.options.length; i++) {
                 if(select.options[i].value.toLowerCase() === novaCat.trim().toLowerCase()) existe = true;
             }
-            
             if (!existe) {
-                const option = document.createElement("option");
-                option.value = novaCat.trim();
-                option.text = novaCat.trim();
+                const option = document.createElement("option"); option.value = novaCat.trim(); option.text = novaCat.trim();
                 select.appendChild(option);
             }
-            
-            select.value = novaCat.trim(); // Já deixa selecionada para você
+            select.value = novaCat.trim(); 
             verificarParcelamento(); 
+            Toast.fire({ icon: 'success', title: 'Categoria adicionada!' });
         }
     }
 
     function atualizarDropdownCategorias() {
         const select = document.getElementById('input-cat');
-        const categoriasPadrao = ['Fixo', 'Retroativo', 'Parcelamento'];
-        
-        // Lê o banco de dados e pega todas as categorias que você já criou alguma vez
+        const categoriasPadrao = ['Fixo', 'Retroativo', 'Parcelamento', 'Salário'];
         const categoriasNoBanco = [...new Set(despesas.map(d => d.cat))];
-        
-        // Junta as padrão com as do banco (removendo as repetidas)
         const todasCategorias = [...new Set([...categoriasPadrao, ...categoriasNoBanco])];
         
         const valorAtual = select.value;
-        select.innerHTML = ''; // Limpa a lista atual
-        
-        // Recria a lista atualizada
+        select.innerHTML = ''; 
         todasCategorias.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat;
-            option.text = cat;
+            const option = document.createElement('option'); option.value = cat; option.text = cat;
             select.appendChild(option);
         });
-        
-        // Mantém a seleção que estava antes
         if (todasCategorias.includes(valorAtual)) select.value = valorAtual;
     }
 
@@ -536,53 +572,60 @@
 
         try {
             const idEditando = document.getElementById('input-id').value;
+            const tipo = document.getElementById('input-tipo').value;
             const desc = document.getElementById('input-desc').value;
             const cat = document.getElementById('input-cat').value;
             const valor = parseFloat(document.getElementById('input-valor').value);
             let mesRef = document.getElementById('input-mes-ref').value;
             let mesPgto = document.getElementById('input-mes-pgto').value;
+            let anoPgto = document.getElementById('input-ano').value;
             const status = document.getElementById('input-status').value;
             const parcelas = parseInt(document.getElementById('input-parcelas').value) || 1;
 
             if (idEditando) {
                 // ATUALIZAR (UPDATE)
                 const { error } = await clienteSupabase.from('despesas').update({
-                    descricao: desc, categoria: cat, valor: valor, mes_ref: mesRef, mes_pgto: mesPgto, status: status
+                    tipo: tipo, ano: anoPgto, descricao: desc, categoria: cat, valor: valor, mes_ref: mesRef, mes_pgto: mesPgto, status: status
                 }).eq('id', idEditando);
                 
-                if (error) throw error; // Se der erro, pula direto pro aviso vermelho
+                if (error) throw error;
                 cancelarEdicao();
+                Toast.fire({ icon: 'success', title: 'Atualizado com sucesso!' });
             } else {
-                // INSERIR (CREATE)
+                // INSERIR (CREATE) - COM VIRADA DE ANO INTELIGENTE
                 let registrosParaBanco = [];
                 let idxRef = mesesOrdem.indexOf(mesRef); 
                 let idxPgto = mesesOrdem.indexOf(mesPgto);
                 
                 for (let i = 0; i < parcelas; i++) {
+                    let mesAtual = (idxPgto + i) % 12;
+                    let anoAtual = parseInt(anoPgto) + Math.floor((idxPgto + i) / 12);
+
                     registrosParaBanco.push({
-                        user_id: usuarioAtual.id, // <-- A CHAVE DE SEGURANÇA ESTÁ AQUI AGORA!
+                        user_id: usuarioAtual.id,
+                        tipo: tipo,
                         descricao: parcelas > 1 ? `${desc} (${i+1}/${parcelas})` : desc,
                         categoria: cat, valor: valor, status: status,
-                        mes_ref: mesesOrdem[idxRef + i] || mesRef,
-                        mes_pgto: mesesOrdem[idxPgto + i] || mesPgto
+                        mes_ref: mesesOrdem[(idxRef + i) % 12] || mesRef,
+                        mes_pgto: mesesOrdem[mesAtual],
+                        ano: anoAtual.toString()
                     });
                 }
                 
                 const { error } = await clienteSupabase.from('despesas').insert(registrosParaBanco);
-                if (error) throw error; // Se der erro, pula direto pro aviso vermelho
+                if (error) throw error; 
+                Toast.fire({ icon: 'success', title: 'Salvo na Nuvem!' });
             }
             
-            // Se tudo deu certo, atualiza a tela
             await carregarDespesasDoBanco(); 
-            document.getElementById('form-despesa').reset(); 
+            document.getElementById('form-despesa').reset();
+            document.getElementById('input-ano').value = "2026"; // Reseta o ano pro padrão
             verificarParcelamento();
             
         } catch (erro) {
-            // SE ALGUMA COISA DER ERRADO, ELE AVISA NA TELA E NÃO TRAVA O BOTÃO
             console.error(erro);
-            alert("❌ Erro ao salvar na Nuvem: " + erro.message);
+            Swal.fire('Erro!', "Erro ao salvar na Nuvem: " + erro.message, 'error');
         } finally {
-            // INDEPENDENTE DE DAR CERTO OU ERRADO, O BOTÃO VOLTA AO NORMAL
             btnSalvar.textContent = 'Salvar na Nuvem'; 
             btnSalvar.disabled = false;
         }
@@ -591,40 +634,59 @@
     window.carregarEdicao = function(id) {
         const d = despesas.find(x => x.id === id);
         document.getElementById('input-id').value = d.id;
+        document.getElementById('input-tipo').value = d.tipo;
         document.getElementById('input-desc').value = d.desc;
         document.getElementById('input-cat').value = d.cat;
         document.getElementById('input-valor').value = d.valor;
         document.getElementById('input-mes-ref').value = d.mesRef;
         document.getElementById('input-mes-pgto').value = d.mesPgto;
+        document.getElementById('input-ano').value = d.ano;
         document.getElementById('input-status').value = d.status;
         
-        document.getElementById('form-title').textContent = '✏️ Editar Despesa';
+        document.getElementById('form-title').textContent = '✏️ Editar Lançamento';
         document.getElementById('btn-salvar').textContent = 'Atualizar na Nuvem';
         document.getElementById('btn-cancelar').style.display = 'block';
         verificarParcelamento(); window.scrollTo(0, 0);
     }
 
     window.cancelarEdicao = function() {
-        document.getElementById('form-despesa').reset(); document.getElementById('input-id').value = '';
-        document.getElementById('form-title').textContent = '➕ Nova Despesa';
+        document.getElementById('form-despesa').reset(); 
+        document.getElementById('input-id').value = '';
+        document.getElementById('input-ano').value = "2026";
+        document.getElementById('form-title').textContent = '➕ Novo Lançamento';
         document.getElementById('btn-salvar').textContent = 'Salvar na Nuvem';
         document.getElementById('btn-cancelar').style.display = 'none';
         verificarParcelamento();
     }
 
+    // EXCLUIR COM ALERTA PREMIUM
     window.deletarRegistro = async function(id) {
-        if(confirm('Tem certeza que deseja apagar do banco de dados?')) { 
-            await clienteSupabase.from('despesas').delete().eq('id', id);
-            await carregarDespesasDoBanco();
-        }
+        Swal.fire({
+            title: 'Tem certeza?',
+            text: "Você não poderá reverter isso!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Sim, apagar!',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const { error } = await clienteSupabase.from('despesas').delete().eq('id', id);
+                if (!error) {
+                    await carregarDespesasDoBanco();
+                    Toast.fire({ icon: 'success', title: 'Apagado com sucesso!' });
+                }
+            }
+        })
     };
 
     window.alternarStatus = async function(id) {
         const item = despesas.find(d => d.id === id);
         const novoStatus = item.status === 'Pendente' ? 'Pago' : 'Pendente';
-        // Atualiza a linha no banco onde o id é igual ao id clicado
         await clienteSupabase.from('despesas').update({ status: novoStatus }).eq('id', id);
         await carregarDespesasDoBanco();
+        Toast.fire({ icon: 'success', title: 'Status atualizado!' });
     }
 
     window.ordenarTabela = function(coluna) {
@@ -642,8 +704,9 @@
     }
 
     document.getElementById('month-filter').addEventListener('change', renderizarInterface);
+    document.getElementById('year-filter').addEventListener('change', renderizarInterface); // NOVO
 
-    // INICIA O APP (Verifica login e puxa dados)
+    // INICIA O APP
     iniciarApp();
 
 </script>
