@@ -52,7 +52,8 @@
         .insights-icon { font-size: 2rem; }
         .insights-text h4 { margin-bottom: 5px; color: var(--accent-yellow); text-transform: uppercase; font-size: 0.85rem;}
         
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        /* ALTERAÇÃO AQUI: minmax ajustado de 150px para 220px para os cartões não espremerem no desktop */
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { background: var(--bg-element); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid transparent; }
         
         /* NOVAS CORES PARA RECEITAS E SALDO */
@@ -67,7 +68,9 @@
         .card.pendente { border-left-color: var(--status-pendente); }
         .card.pago { border-left-color: var(--status-pago); }
         .card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
-        .card .value { font-size: 1.4rem; font-weight: bold; color: var(--primary-color); word-break: break-all;}
+        
+        /* ALTERAÇÃO AQUI: Substituído word-break: break-all por white-space: nowrap para o número não quebrar */
+        .card .value { font-size: 1.4rem; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
         .card.receita .value { color: var(--accent-green); }
         .card.pendente .value { color: var(--status-pendente); }
         .card.pago .value { color: var(--status-pago); }
