@@ -333,6 +333,14 @@
     let ordemCrescente = true; let colunaAtual = '';
     const mesesOrdem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+    // --- VACINA CONTRA XSS (Limpa textos maliciosos) ---
+    function sanitizarHTML(texto) {
+        if (!texto) return '';
+        const elementoFake = document.createElement('div');
+        elementoFake.textContent = texto;
+        return elementoFake.innerHTML;
+    }
+
     // --- AUTENTICAÇÃO E LOGOUT ---
     async function iniciarApp() {
         const { data: { session } } = await clienteSupabase.auth.getSession();
@@ -426,11 +434,16 @@
             const sinalTexto = item.tipo === 'Receita' ? '+ ' : '- ';
             const tipoLabel = item.tipo === 'Receita' ? '🟢 Receita' : '🔴 Despesa';
 
+            // AQUI A MÁGICA ACONTECE: Limpando a sujeira antes de mostrar na tela
+            const descSegura = sanitizarHTML(item.desc);
+            const catSegura = sanitizarHTML(item.cat);
+
+            // Agora usamos 'descSegura' e 'catSegura' no HTML abaixo
             tbody.innerHTML += `
-                <tr class="category-${item.cat.toLowerCase()}">
+                <tr class="category-${catSegura.toLowerCase()}">
                     <td data-label="Tipo">${tipoLabel}</td>
-                    <td data-label="Descrição">${item.desc}</td>
-                    <td data-label="Categoria">${item.cat}</td>
+                    <td data-label="Descrição">${descSegura}</td>
+                    <td data-label="Categoria">${catSegura}</td>
                     <td data-label="Valor (R$)" class="val-money ${sinalClass}">${sinalTexto}${formatarMoeda(item.valor)}</td>
                     <td data-label="Mês/Ano Pgto" style="font-weight:bold">${item.mesPgto}/${item.ano}</td>
                     <td data-label="Status" style="text-align: right;">
