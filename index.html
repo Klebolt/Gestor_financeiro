@@ -8,7 +8,7 @@
     <style>
         :root { --primary-color: #2c3e50; --bg-body: #ecf0f1; --bg-element: #ffffff; --text-color: #333333; --border-color: #dddddd; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        body { background-color: var(--bg-body); color: var(--text-color); display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
+        body { background-color: var(--bg-body); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         
         .login-box { background: var(--bg-element); padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; border-top: 5px solid var(--primary-color);}
         .login-box h1 { color: var(--primary-color); margin-bottom: 10px; font-size: 1.8rem; }
@@ -24,6 +24,12 @@
         .btn-register { background-color: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); }
         .btn-register:hover { background-color: #f1f2f6; }
         
+        .link-esqueci { color: var(--primary-color); font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 10px; display: inline-block; }
+        .link-esqueci:hover { color: #1a252f; }
+
+        /* Área oculta que só aparece quando o usuário clica no link do e-mail */
+        #area-nova-senha { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: left; }
+        
         #mensagem { margin-top: 15px; font-size: 0.9rem; font-weight: bold; min-height: 20px; }
         .erro { color: #e74c3c; }
         .sucesso { color: #2ecc71; }
@@ -35,17 +41,28 @@
     <h1>Gestor Financeiro</h1>
     <p>Acesse sua conta ou cadastre-se</p>
 
-    <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="email" placeholder="seu@email.com" required>
-    </div>
-    <div class="form-group">
-        <label>Senha</label>
-        <input type="password" id="senha" placeholder="******" required>
+    <div id="area-login-padrao">
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="email" placeholder="seu@email.com" required>
+        </div>
+        <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="senha" placeholder="******" required>
+        </div>
+
+        <button class="btn btn-login" onclick="fazerLogin()">Entrar</button>
+        <button class="btn btn-register" onclick="criarConta()">Criar Nova Conta</button>
+        <span class="link-esqueci" onclick="recuperarSenha()">Esqueci minha senha</span>
     </div>
 
-    <button class="btn btn-login" onclick="fazerLogin()">Entrar</button>
-    <button class="btn btn-register" onclick="criarConta()">Criar Nova Conta</button>
+    <div id="area-nova-senha">
+        <div class="form-group">
+            <label>Digite sua Nova Senha</label>
+            <input type="password" id="nova-senha" placeholder="Mínimo 6 caracteres" required>
+        </div>
+        <button class="btn btn-login" onclick="salvarNovaSenha()">Atualizar Senha</button>
+    </div>
 
     <div id="mensagem"></div>
 </div>
@@ -57,9 +74,7 @@
     const supabaseUrl = 'https://wmfgttnljcljhresviuw.supabase.co'; 
     const supabaseKey = 'sb_publishable_jzIwu_Z27ir5YBWrPGO4iw_In0DSd1G'; 
     
-    // CORREÇÃO AQUI: Usando window.supabase e chamando nossa variável de clienteSupabase
     const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
     const msgEl = document.getElementById('mensagem');
 
     function mostrarMensagem(texto, tipo) {
@@ -67,59 +82,72 @@
         msgEl.className = tipo;
     }
 
-    // FUNÇÃO 1: CRIAR CONTA (REGISTRO)
+    // --- FUNÇÕES DE LOGIN E CADASTRO ---
     async function criarConta() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('senha').value;
-        
-        if(!email || password.length < 6) {
-            mostrarMensagem("Digite um e-mail válido e senha com mínimo de 6 caracteres.", "erro");
-            return;
-        }
-
+        if(!email || password.length < 6) { mostrarMensagem("E-mail inválido ou senha curta (min 6).", "erro"); return; }
         mostrarMensagem("Criando conta...", "sucesso");
-        
-        const { data, error } = await clienteSupabase.auth.signUp({ email, password });
-
-        if (error) {
-            mostrarMensagem("Erro ao criar conta: " + error.message, "erro");
-        } else {
-            mostrarMensagem("Conta criada com sucesso! Entrando...", "sucesso");
-            setTimeout(() => { window.location.href = 'app.html'; }, 1500);
-        }
+        const { error } = await clienteSupabase.auth.signUp({ email, password });
+        if (error) mostrarMensagem(error.message, "erro");
+        else { mostrarMensagem("Conta criada! Entrando...", "sucesso"); setTimeout(() => { window.location.href = 'app.html'; }, 1500); }
     }
 
-    // FUNÇÃO 2: FAZER LOGIN
     async function fazerLogin() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('senha').value;
+        if(!email || !password) { mostrarMensagem("Preencha e-mail e senha.", "erro"); return; }
+        mostrarMensagem("Autenticando...", "sucesso");
+        const { error } = await clienteSupabase.auth.signInWithPassword({ email, password });
+        if (error) mostrarMensagem("E-mail ou senha incorretos.", "erro");
+        else { mostrarMensagem("Login efetuado!", "sucesso"); setTimeout(() => { window.location.href = 'app.html'; }, 1000); }
+    }
 
-        if(!email || !password) {
-            mostrarMensagem("Preencha e-mail e senha.", "erro");
+    // --- NOVA FUNÇÃO: PEDIR RECUPERAÇÃO DE SENHA ---
+    async function recuperarSenha() {
+        const email = document.getElementById('email').value;
+        if(!email) {
+            mostrarMensagem("Digite seu e-mail no campo acima primeiro!", "erro");
             return;
         }
+        mostrarMensagem("Enviando e-mail de recuperação...", "sucesso");
+        
+        // Pede para o Supabase enviar o e-mail e voltar para a página atual
+        const { error } = await clienteSupabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.href
+        });
 
-        mostrarMensagem("Autenticando...", "sucesso");
-
-        const { data, error } = await clienteSupabase.auth.signInWithPassword({ email, password });
-
-        if (error) {
-            mostrarMensagem("E-mail ou senha incorretos.", "erro");
-        } else {
-            mostrarMensagem("Login efetuado! Redirecionando...", "sucesso");
-            setTimeout(() => { window.location.href = 'app.html'; }, 1000);
-        }
+        if (error) mostrarMensagem("Erro: " + error.message, "erro");
+        else mostrarMensagem("E-mail enviado! Verifique sua caixa de entrada e Spam.", "sucesso");
     }
 
-    // VERIFICAR SE JÁ ESTÁ LOGADO
-    async function checarSessao() {
-        const { data: { session } } = await clienteSupabase.auth.getSession();
-        if (session) {
-            window.location.href = 'app.html'; 
+    // --- NOVA FUNÇÃO: DETECTAR VOLTA DO E-MAIL ---
+    // Essa função fica "escutando". Se a pessoa abrir o site pelo link do e-mail, ela é ativada.
+    clienteSupabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+            document.getElementById('area-login-padrao').style.display = 'none'; // Esconde o login normal
+            document.getElementById('area-nova-senha').style.display = 'block';  // Mostra campo de nova senha
+            mostrarMensagem("Modo de recuperação ativado! Crie sua nova senha.", "sucesso");
+        } else if (event === 'SIGNED_IN' && !document.getElementById('area-nova-senha').style.display === 'block') {
+            // Se fez login normal e não está recuperando senha, vai pro app
+            window.location.href = 'app.html';
+        }
+    });
+
+    // --- NOVA FUNÇÃO: SALVAR A SENHA NOVA ---
+    async function salvarNovaSenha() {
+        const novaSenha = document.getElementById('nova-senha').value;
+        if(novaSenha.length < 6) { mostrarMensagem("A senha deve ter pelo menos 6 caracteres.", "erro"); return; }
+        
+        mostrarMensagem("Atualizando senha...", "sucesso");
+        const { error } = await clienteSupabase.auth.updateUser({ password: novaSenha });
+        
+        if (error) mostrarMensagem("Erro ao atualizar: " + error.message, "erro");
+        else {
+            mostrarMensagem("Senha atualizada com sucesso! Entrando...", "sucesso");
+            setTimeout(() => { window.location.href = 'app.html'; }, 1500);
         }
     }
-    
-    checarSessao();
 
 </script>
 </body>
