@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2c3e50" id="meta-theme-color">
-    <title>Gestor Financeiro PRO - Nuvem</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#2c3e50" id="meta-theme-color">
+        <title>Gestor Financeiro PRO</title>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script
+            src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <style>
         /* --- MESMO CSS PREMIUM DA VERSÃO 6 --- */
         :root {
             --primary-color: #2c3e50; --accent-red: #e74c3c; --accent-yellow: #f1c40f; 
@@ -103,109 +104,171 @@
             .status-badge { margin-left: auto; max-width: none;}
         }
     </style>
-</head>
-<body>
+    </head>
+    <body>
 
-<div class="container">
-    <header>
-        <div class="header-titles">
-            <h1>Gestor Financeiro PRO</h1>
-            <p>Conectado à Nuvem (Supabase)</p>
+        <div class="container">
+            <header>
+                <div class="header-titles">
+                    <h1>Gestor Financeiro PRO</h1>
+                    <p>Conectado à Nuvem (Supabase)</p>
+                </div>
+                <div class="header-actions">
+                    <div class="user-email"
+                        id="info-usuario">Carregando...</div>
+                    <button class="btn-icon" id="theme-toggle"
+                        onclick="toggleTheme()"
+                        title="Alternar Tema">🌙</button>
+                    <button class="btn-icon" onclick="fazerLogout()"
+                        title="Sair (Logout)"
+                        style="color: var(--accent-red);">🚪</button>
+                </div>
+            </header>
+
+            <section class="form-section">
+                <h3 id="form-title"
+                    style="color: var(--primary-color); margin-bottom: 15px;">➕
+                    Nova Despesa</h3>
+                <form id="form-despesa">
+                    <input type="hidden" id="input-id">
+                    <div class="form-group"><label>Descrição</label><input
+                            type="text" id="input-desc" required
+                            placeholder="Ex: Conta de Luz"></div>
+                    <div class="form-group"><label>Categoria</label>
+                        <select id="input-cat" required
+                            onchange="verificarParcelamento()">
+                            <option value="Fixo">Fixo</option><option
+                                value="Retroativo">Retroativo</option><option
+                                value="Parcelamento">Parcelamento</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="grupo-parcelas"
+                        style="display: none;"><label>Nº Parcelas</label><input
+                            type="number" id="input-parcelas" min="1"
+                            value="1"></div>
+                    <div class="form-group"><label>Valor (R$)</label><input
+                            type="number" id="input-valor" step="0.01" required
+                            placeholder="0.00"></div>
+                    <div class="form-group"><label>Mês Ref.</label>
+                        <select id="input-mes-ref" required>
+                            <option value="Janeiro">Janeiro</option>
+                            <option value="Fevereiro">Fevereiro</option>
+                            <option value="Março">Março</option>
+                            <option value="Abril">Abril</option>
+                            <option value="Maio">Maio</option>
+                            <option value="Junho">Junho</option>
+                            <option value="Julho">Julho</option>
+                            <option value="Agosto">Agosto</option>
+                            <option value="Setembro">Setembro</option>
+                            <option value="Outubro">Outubro</option>
+                            <option value="Novembro">Novembro</option>
+                            <option value="Dezembro">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Mês Pgto</label>
+                        <select id="input-mes-ref" required>
+                            <option value="Janeiro">Janeiro</option>
+                            <option value="Fevereiro">Fevereiro</option>
+                            <option value="Março">Março</option>
+                            <option value="Abril">Abril</option>
+                            <option value="Maio">Maio</option>
+                            <option value="Junho">Junho</option>
+                            <option value="Julho">Julho</option>
+                            <option value="Agosto">Agosto</option>
+                            <option value="Setembro">Setembro</option>
+                            <option value="Outubro">Outubro</option>
+                            <option value="Novembro">Novembro</option>
+                            <option value="Dezembro">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Status</label>
+                        <select id="input-status" required><option
+                                value="Pendente"
+                                selected>Pendente</option><option
+                                value="Pago">Pago</option></select>
+                    </div>
+                    <div class="form-group botoes-form">
+                        <button type="submit" class="btn-salvar"
+                            id="btn-salvar">Salvar na Nuvem</button>
+                        <button type="button" class="btn-cancelar"
+                            id="btn-cancelar"
+                            onclick="cancelarEdicao()">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="insights-box" id="caixa-insights">
+                <div class="insights-icon">💡</div>
+                <div class="insights-text">
+                    <h4>Análise Automática</h4>
+                    <p id="texto-insight">Carregando dados da nuvem...</p>
+                </div>
+            </section>
+
+            <section class="dashboard">
+                <div class="card fixo"><h3 id="label-fixas">Fixas</h3><div
+                        class="value" id="card-fixas">R$ 0,00</div></div>
+                <div class="card retro"><h3
+                        id="label-retro">Retroativos</h3><div class="value"
+                        id="card-retroativas">R$ 0,00</div></div>
+                <div class="card total"><h3 id="label-total">Total Mês</h3><div
+                        class="value" id="card-total">R$ 0,00</div></div>
+                <div class="card pendente"><h3 id="label-pendente">A
+                        Pagar</h3><div class="value" id="card-pendente">R$
+                        0,00</div></div>
+                <div class="card pago"><h3 id="label-pago">Já Pago</h3><div
+                        class="value" id="card-pago">R$ 0,00</div></div>
+            </section>
+
+            <section class="charts-container">
+                <div class="chart-box"><canvas
+                        id="graficoCategoria"></canvas></div>
+                <div class="chart-box"><canvas id="graficoMeses"></canvas></div>
+            </section>
+
+            <section class="controls">
+                <div class="controls-group">
+                    <label style="color: var(--text-muted);">Mês do
+                        Caixa:</label>
+                    <select id="month-filter">
+                        <option value="Todos">Ver Todos</option>
+                        <option value="Abril" selected>Abril</option>
+                        <option value="Maio">Maio</option>
+                        <option value="Junho">Junho</option>
+                        <option value="Julho">Julho</option>
+                        <option value="Agosto">Agosto</option>
+                        <option value="Setembro">Setembro</option>
+                    </select>
+                </div>
+                <div class="controls-group">
+                    <input type="text" id="search-input" class="search-bar"
+                        placeholder="🔍 Buscar conta (ex: Luz)..."
+                        onkeyup="renderizarInterface()">
+                </div>
+            </section>
+
+            <section class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th onclick="ordenarTabela('mesRef')">Mês Ref.
+                                ↕</th>
+                            <th onclick="ordenarTabela('desc')">Descrição ↕</th>
+                            <th onclick="ordenarTabela('cat')">Categoria ↕</th>
+                            <th onclick="ordenarTabela('valor')"
+                                style="text-align: right;">Valor ↕</th>
+                            <th onclick="ordenarTabela('mesPgto')">Mês Pgto
+                                ↕</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: center;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </section>
         </div>
-        <div class="header-actions">
-            <div class="user-email" id="info-usuario">Carregando...</div>
-            <button class="btn-icon" id="theme-toggle" onclick="toggleTheme()" title="Alternar Tema">🌙</button>
-            <button class="btn-icon" onclick="fazerLogout()" title="Sair (Logout)" style="color: var(--accent-red);">🚪</button>
-        </div>
-    </header>
 
-    <section class="form-section">
-        <h3 id="form-title" style="color: var(--primary-color); margin-bottom: 15px;">➕ Nova Despesa</h3>
-        <form id="form-despesa">
-            <input type="hidden" id="input-id">
-            <div class="form-group"><label>Descrição</label><input type="text" id="input-desc" required placeholder="Ex: Conta de Luz"></div>
-            <div class="form-group"><label>Categoria</label>
-                <select id="input-cat" required onchange="verificarParcelamento()">
-                    <option value="Fixo">Fixo</option><option value="Retroativo">Retroativo</option><option value="Parcelamento">Parcelamento</option>
-                </select>
-            </div>
-            <div class="form-group" id="grupo-parcelas" style="display: none;"><label>Nº Parcelas</label><input type="number" id="input-parcelas" min="1" value="1"></div>
-            <div class="form-group"><label>Valor (R$)</label><input type="number" id="input-valor" step="0.01" required placeholder="0.00"></div>
-            <div class="form-group"><label>Mês Ref.</label>
-                <select id="input-mes-ref" required>
-                    <option value="Fevereiro">Fevereiro</option><option value="Março">Março</option><option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Mês Pgto</label>
-                <select id="input-mes-pgto" required>
-                    <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Status</label>
-                <select id="input-status" required><option value="Pendente" selected>Pendente</option><option value="Pago">Pago</option></select>
-            </div>
-            <div class="form-group botoes-form">
-                <button type="submit" class="btn-salvar" id="btn-salvar">Salvar na Nuvem</button>
-                <button type="button" class="btn-cancelar" id="btn-cancelar" onclick="cancelarEdicao()">Cancelar</button>
-            </div>
-        </form>
-    </section>
-
-    <section class="insights-box" id="caixa-insights">
-        <div class="insights-icon">💡</div>
-        <div class="insights-text">
-            <h4>Análise Automática</h4>
-            <p id="texto-insight">Carregando dados da nuvem...</p>
-        </div>
-    </section>
-
-    <section class="dashboard">
-        <div class="card fixo"><h3 id="label-fixas">Fixas</h3><div class="value" id="card-fixas">R$ 0,00</div></div>
-        <div class="card retro"><h3 id="label-retro">Retroativos</h3><div class="value" id="card-retroativas">R$ 0,00</div></div>
-        <div class="card total"><h3 id="label-total">Total Mês</h3><div class="value" id="card-total">R$ 0,00</div></div>
-        <div class="card pendente"><h3 id="label-pendente">A Pagar</h3><div class="value" id="card-pendente">R$ 0,00</div></div>
-        <div class="card pago"><h3 id="label-pago">Já Pago</h3><div class="value" id="card-pago">R$ 0,00</div></div>
-    </section>
-
-    <section class="charts-container">
-        <div class="chart-box"><canvas id="graficoCategoria"></canvas></div>
-        <div class="chart-box"><canvas id="graficoMeses"></canvas></div>
-    </section>
-
-    <section class="controls">
-        <div class="controls-group">
-            <label style="color: var(--text-muted);">Mês do Caixa:</label>
-            <select id="month-filter">
-                <option value="Todos">Ver Todos</option>
-                <option value="Abril" selected>Abril</option>
-                <option value="Maio">Maio</option>
-                <option value="Junho">Junho</option>
-            </select>
-        </div>
-        <div class="controls-group">
-            <input type="text" id="search-input" class="search-bar" placeholder="🔍 Buscar conta (ex: Luz)..." onkeyup="renderizarInterface()">
-        </div>
-    </section>
-
-    <section class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th onclick="ordenarTabela('mesRef')">Mês Ref. ↕</th>
-                    <th onclick="ordenarTabela('desc')">Descrição ↕</th>
-                    <th onclick="ordenarTabela('cat')">Categoria ↕</th>
-                    <th onclick="ordenarTabela('valor')" style="text-align: right;">Valor ↕</th>
-                    <th onclick="ordenarTabela('mesPgto')">Mês Pgto ↕</th>
-                    <th style="text-align: center;">Status</th>
-                    <th style="text-align: center;">Ações</th>
-                </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-        </table>
-    </section>
-</div>
-
-<script>
+        <script>
     // ==========================================
     // COLE SUAS CHAVES DO SUPABASE AQUI EMBAIXO:
     // ==========================================
@@ -217,7 +280,7 @@
     let usuarioAtual = null;
     let chartCat = null; let chartMeses = null;
     let ordemCrescente = true; let colunaAtual = '';
-    const mesesOrdem = ['Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesesOrdem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
     // --- AUTENTICAÇÃO E LOGOUT ---
     async function iniciarApp() {
@@ -351,6 +414,7 @@
         const fontColor = isDark ? '#e0e0e0' : '#333333';
         Chart.defaults.color = fontColor;
 
+        // 1. Gráfico de Pizza (Categorias)
         const categorias = { Fixo: 0, Retroativo: 0, Parcelamento: 0 };
         dadosVisiveis.forEach(d => categorias[d.cat] += parseFloat(d.valor));
 
@@ -360,12 +424,22 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Distribuição Atual' } } }
         });
 
-        const mesesTotais = { Abril: 0, Maio: 0, Junho: 0 };
-        despesas.forEach(d => { if(mesesTotais[d.mesPgto] !== undefined) mesesTotais[d.mesPgto] += parseFloat(d.valor); });
+        // 2. Gráfico de Barras (MÁGICA AUTOMÁTICA DE MESES AQUI)
+        const mesesTotais = {};
+        
+        // Descobre todos os meses que têm gastos cadastrados no banco
+        despesas.forEach(d => { 
+            if(mesesTotais[d.mesPgto] === undefined) mesesTotais[d.mesPgto] = 0;
+            mesesTotais[d.mesPgto] += parseFloat(d.valor); 
+        });
+
+        // Organiza os meses na ordem certa do calendário (Janeiro a Dezembro)
+        const labelsMeses = Object.keys(mesesTotais).sort((a, b) => mesesOrdem.indexOf(a) - mesesOrdem.indexOf(b));
+        const valoresMeses = labelsMeses.map(mes => mesesTotais[mes]);
 
         if (chartMeses) chartMeses.destroy();
         chartMeses = new Chart(document.getElementById('graficoMeses'), {
-            type: 'bar', data: { labels: ['Abril', 'Maio', 'Junho'], datasets: [{ label: 'Total Previsto', data: [mesesTotais.Abril, mesesTotais.Maio, mesesTotais.Junho], backgroundColor: isDark ? '#3498db' : '#2c3e50' }] },
+            type: 'bar', data: { labels: labelsMeses, datasets: [{ label: 'Total Previsto', data: valoresMeses, backgroundColor: isDark ? '#3498db' : '#2c3e50' }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Evolução de Gastos' } } }
         });
     }
@@ -476,5 +550,5 @@
     iniciarApp();
 
 </script>
-</body>
+    </body>
 </html>
