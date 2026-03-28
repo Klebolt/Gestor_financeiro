@@ -111,6 +111,7 @@
             <header>
                 <div class="header-titles">
                     <h1>Gestor Financeiro PRO</h1>
+                    <!--<p>Conectado à Nuvem (Supabase)</p>-->
                 </div>
                 <div class="header-actions">
                     <div class="user-email"
@@ -130,9 +131,11 @@
                     Nova Despesa</h3>
                 <form id="form-despesa">
                     <input type="hidden" id="input-id">
+
                     <div class="form-group"><label>Descrição</label><input
                             type="text" id="input-desc" required
                             placeholder="Ex: Conta de Luz"></div>
+
                     <div class="form-group"><label>Categoria</label>
                         <select id="input-cat" required
                             onchange="verificarParcelamento()">
@@ -141,51 +144,57 @@
                                 value="Parcelamento">Parcelamento</option>
                         </select>
                     </div>
+
                     <div class="form-group" id="grupo-parcelas"
                         style="display: none;"><label>Nº Parcelas</label><input
                             type="number" id="input-parcelas" min="1"
                             value="1"></div>
+
                     <div class="form-group"><label>Valor (R$)</label><input
                             type="number" id="input-valor" step="0.01" required
                             placeholder="0.00"></div>
+
                     <div class="form-group"><label>Mês Ref.</label>
                         <select id="input-mes-ref" required>
-                            <option value="Janeiro">Janeiro</option>
-                            <option value="Fevereiro">Fevereiro</option>
-                            <option value="Março">Março</option>
-                            <option value="Abril">Abril</option>
-                            <option value="Maio">Maio</option>
-                            <option value="Junho">Junho</option>
-                            <option value="Julho">Julho</option>
-                            <option value="Agosto">Agosto</option>
-                            <option value="Setembro">Setembro</option>
-                            <option value="Outubro">Outubro</option>
-                            <option value="Novembro">Novembro</option>
-                            <option value="Dezembro">Dezembro</option>
+                            <option value="Janeiro">Janeiro</option><option
+                                value="Fevereiro">Fevereiro</option><option
+                                value="Março">Março</option><option
+                                value="Abril">Abril</option><option
+                                value="Maio">Maio</option><option
+                                value="Junho">Junho</option><option
+                                value="Julho">Julho</option><option
+                                value="Agosto">Agosto</option><option
+                                value="Setembro">Setembro</option><option
+                                value="Outubro">Outubro</option><option
+                                value="Novembro">Novembro</option><option
+                                value="Dezembro">Dezembro</option>
                         </select>
                     </div>
+
                     <div class="form-group"><label>Mês Pgto</label>
-                        <select id="input-mes-ref" required>
-                            <option value="Janeiro">Janeiro</option>
-                            <option value="Fevereiro">Fevereiro</option>
-                            <option value="Março">Março</option>
-                            <option value="Abril">Abril</option>
-                            <option value="Maio">Maio</option>
-                            <option value="Junho">Junho</option>
-                            <option value="Julho">Julho</option>
-                            <option value="Agosto">Agosto</option>
-                            <option value="Setembro">Setembro</option>
-                            <option value="Outubro">Outubro</option>
-                            <option value="Novembro">Novembro</option>
-                            <option value="Dezembro">Dezembro</option>
+                        <select id="input-mes-pgto" required>
+                            <option value="Janeiro">Janeiro</option><option
+                                value="Fevereiro">Fevereiro</option><option
+                                value="Março">Março</option><option
+                                value="Abril">Abril</option><option
+                                value="Maio">Maio</option><option
+                                value="Junho">Junho</option><option
+                                value="Julho">Julho</option><option
+                                value="Agosto">Agosto</option><option
+                                value="Setembro">Setembro</option><option
+                                value="Outubro">Outubro</option><option
+                                value="Novembro">Novembro</option><option
+                                value="Dezembro">Dezembro</option>
                         </select>
                     </div>
+
                     <div class="form-group"><label>Status</label>
                         <select id="input-status" required><option
                                 value="Pendente"
                                 selected>Pendente</option><option
                                 value="Pago">Pago</option></select>
                     </div>
+
                     <div class="form-group botoes-form">
                         <button type="submit" class="btn-salvar"
                             id="btn-salvar">Salvar na Nuvem</button>
