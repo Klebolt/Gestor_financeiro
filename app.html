@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="theme-color" content="#2c3e50" id="meta-theme-color">
-        <title>Gestor Financeiro PRO</title>
+        <title>Gestor Financeiro PRO - Nuvem</title>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script
@@ -111,7 +111,7 @@
             <header>
                 <div class="header-titles">
                     <h1>Gestor Financeiro PRO</h1>
-                    <!--<p>Conectado à Nuvem (Supabase)</p>-->
+                    <p>Conectado à Nuvem (Supabase)</p>
                 </div>
                 <div class="header-actions">
                     <div class="user-email"
@@ -136,13 +136,21 @@
                             type="text" id="input-desc" required
                             placeholder="Ex: Conta de Luz"></div>
 
-                    <div class="form-group"><label>Categoria</label>
-                        <select id="input-cat" required
-                            onchange="verificarParcelamento()">
-                            <option value="Fixo">Fixo</option><option
-                                value="Retroativo">Retroativo</option><option
-                                value="Parcelamento">Parcelamento</option>
-                        </select>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select id="input-cat" required
+                                onchange="verificarParcelamento()">
+                                <option value="Fixo">Fixo</option>
+                                <option value="Retroativo">Retroativo</option>
+                                <option
+                                    value="Parcelamento">Parcelamento</option>
+                            </select>
+                            <button type="button" class="btn-icon"
+                                onclick="adicionarNovaCategoria()"
+                                style="padding: 0 12px; font-weight: bold; background: var(--primary-color); color: white;"
+                                title="Criar nova categoria">+</button>
+                        </div>
                     </div>
 
                     <div class="form-group" id="grupo-parcelas"
@@ -332,6 +340,7 @@
         }));
 
         renderizarInterface();
+        atualizarDropdownCategorias(); // <--- SÓ ADICIONAR ESTA LINHA AQUI!
     }
 
     // --- TEMA ESCURO (Mantido) ---
@@ -422,26 +431,34 @@
         const fontColor = isDark ? '#e0e0e0' : '#333333';
         Chart.defaults.color = fontColor;
 
-        // 1. Gráfico de Pizza (Categorias)
-        const categorias = { Fixo: 0, Retroativo: 0, Parcelamento: 0 };
-        dadosVisiveis.forEach(d => categorias[d.cat] += parseFloat(d.valor));
+        // 1. Gráfico de Pizza (AGORA 100% AUTOMÁTICO PARA INFINITAS CATEGORIAS)
+        const categorias = {};
+        dadosVisiveis.forEach(d => {
+            if (!categorias[d.cat]) categorias[d.cat] = 0;
+            categorias[d.cat] += parseFloat(d.valor);
+        });
+
+        const labelsCat = Object.keys(categorias);
+        const dataCat = Object.values(categorias);
+        
+        // Paleta de cores profissionais que se repetem caso você crie muitas categorias
+        const paletaCores = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#ff9ff3', '#00d2d3'];
+        const coresCat = labelsCat.map((_, index) => paletaCores[index % paletaCores.length]);
 
         if (chartCat) chartCat.destroy();
         chartCat = new Chart(document.getElementById('graficoCategoria'), {
-            type: 'doughnut', data: { labels: ['Fixas', 'Retroativos', 'Parcelas'], datasets: [{ data: [categorias.Fixo, categorias.Retroativo, categorias.Parcelamento], backgroundColor: ['#f1c40f', '#e74c3c', '#3498db'], borderWidth: isDark ? 0 : 2 }] },
+            type: 'doughnut', 
+            data: { labels: labelsCat, datasets: [{ data: dataCat, backgroundColor: coresCat, borderWidth: isDark ? 0 : 2 }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Distribuição Atual' } } }
         });
 
-        // 2. Gráfico de Barras (MÁGICA AUTOMÁTICA DE MESES AQUI)
+        // 2. Gráfico de Barras (Meses)
         const mesesTotais = {};
-        
-        // Descobre todos os meses que têm gastos cadastrados no banco
         despesas.forEach(d => { 
             if(mesesTotais[d.mesPgto] === undefined) mesesTotais[d.mesPgto] = 0;
             mesesTotais[d.mesPgto] += parseFloat(d.valor); 
         });
 
-        // Organiza os meses na ordem certa do calendário (Janeiro a Dezembro)
         const labelsMeses = Object.keys(mesesTotais).sort((a, b) => mesesOrdem.indexOf(a) - mesesOrdem.indexOf(b));
         const valoresMeses = labelsMeses.map(mes => mesesTotais[mes]);
 
@@ -457,6 +474,55 @@
         const cat = document.getElementById('input-cat').value;
         const inputId = document.getElementById('input-id').value;
         document.getElementById('grupo-parcelas').style.display = (cat === 'Parcelamento' && !inputId) ? 'flex' : 'none';
+    }
+
+    // --- NOVA LÓGICA DE CATEGORIAS DINÂMICAS ---
+    function adicionarNovaCategoria() {
+        const novaCat = prompt("Digite o nome da nova categoria (ex: Lazer, Supermercado):");
+        if (novaCat && novaCat.trim() !== "") {
+            const select = document.getElementById('input-cat');
+            
+            // Verifica se a categoria já existe na lista para não duplicar
+            let existe = false;
+            for(let i = 0; i < select.options.length; i++) {
+                if(select.options[i].value.toLowerCase() === novaCat.trim().toLowerCase()) existe = true;
+            }
+            
+            if (!existe) {
+                const option = document.createElement("option");
+                option.value = novaCat.trim();
+                option.text = novaCat.trim();
+                select.appendChild(option);
+            }
+            
+            select.value = novaCat.trim(); // Já deixa selecionada para você
+            verificarParcelamento(); 
+        }
+    }
+
+    function atualizarDropdownCategorias() {
+        const select = document.getElementById('input-cat');
+        const categoriasPadrao = ['Fixo', 'Retroativo', 'Parcelamento'];
+        
+        // Lê o banco de dados e pega todas as categorias que você já criou alguma vez
+        const categoriasNoBanco = [...new Set(despesas.map(d => d.cat))];
+        
+        // Junta as padrão com as do banco (removendo as repetidas)
+        const todasCategorias = [...new Set([...categoriasPadrao, ...categoriasNoBanco])];
+        
+        const valorAtual = select.value;
+        select.innerHTML = ''; // Limpa a lista atual
+        
+        // Recria a lista atualizada
+        todasCategorias.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.text = cat;
+            select.appendChild(option);
+        });
+        
+        // Mantém a seleção que estava antes
+        if (todasCategorias.includes(valorAtual)) select.value = valorAtual;
     }
 
     document.getElementById('form-despesa').addEventListener('submit', async function(e) {
@@ -569,6 +635,7 @@
             return 0;
         });
         renderizarInterface();
+        atualizarDropdownCategorias();
     }
 
     document.getElementById('month-filter').addEventListener('change', renderizarInterface);
