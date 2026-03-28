@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c3e50" id="meta-theme-color">
+    <title>Gestor Financeiro PRO - Nuvem</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* --- MESMO CSS PREMIUM DA VERSÃO 6 --- */
+        :root {
+            --primary-color: #2c3e50; --accent-red: #e74c3c; --accent-yellow: #f1c40f; 
+            --status-pago: #2ecc71; --status-pendente: #e67e22; 
+            --bg-body: #ecf0f1; --bg-element: #ffffff; --text-color: #333333;
+            --text-muted: #7f8c8d; --border-color: #dddddd; --row-hover: #f1f2f6; --row-retro: #fff5f5;
+        }
+        [data-theme="dark"] {
+            --bg-body: #121212; --bg-element: #1e1e1e; --text-color: #e0e0e0;
+            --text-muted: #aaaaaa; --border-color: #333333; --row-hover: #2c2c2c;
+            --row-retro: #3a1c1c; --primary-color: #3498db; 
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        body { background-color: var(--bg-body); color: var(--text-color); padding: 15px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .header-titles h1 { color: var(--primary-color); }
+        .header-titles p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
+        
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .user-email { font-size: 0.85rem; font-weight: bold; color: var(--primary-color); background: var(--bg-element); padding: 5px 10px; border-radius: 4px; border: 1px solid var(--border-color);}
+        
+        .btn-icon { background: var(--bg-element); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;}
+        .btn-icon:hover { background: var(--row-hover); }
+
+        .form-section { background: var(--bg-element); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-top: 4px solid var(--primary-color); }
+        form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; align-items: end; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: var(--text-muted); }
+        .form-group input, .form-group select { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem; width: 100%; background: var(--bg-body); color: var(--text-color);}
+        
+        .botoes-form { display: flex; gap: 10px; flex-direction: row; }
+        .btn-salvar { background-color: var(--primary-color); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; flex: 1;}
+        .btn-cancelar { background-color: #95a5a6; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; display: none; flex: 1;}
+
+        .insights-box { background: linear-gradient(135deg, var(--primary-color), #34495e); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.15);}
+        .insights-icon { font-size: 2rem; }
+        .insights-text h4 { margin-bottom: 5px; color: var(--accent-yellow); text-transform: uppercase; font-size: 0.85rem;}
+        
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: var(--bg-element); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid transparent; }
+        .card.fixo { border-left-color: var(--accent-yellow); }
+        .card.retro { border-left-color: var(--accent-red); }
+        .card.total { border-left-color: var(--primary-color); }
+        .card.pendente { border-left-color: var(--status-pendente); }
+        .card.pago { border-left-color: var(--status-pago); }
+        .card h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; }
+        .card .value { font-size: 1.4rem; font-weight: bold; color: var(--primary-color); word-break: break-all;}
+        .card.pendente .value { color: var(--status-pendente); }
+        .card.pago .value { color: var(--status-pago); }
+
+        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .chart-box { background: var(--bg-element); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); width: 100%; position: relative; }
+        
+        .controls { background: var(--bg-element); padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap;}
+        .controls-group { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 250px;}
+        .search-bar { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; width: 100%; font-size: 1rem; background: var(--bg-body); color: var(--text-color);}
+        .controls select { padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); font-weight: bold; width: 100%; background: var(--bg-body); color: var(--text-color);}
+
+        .table-container { background: var(--bg-element); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color); color: var(--primary-color); font-size: 0.85rem; text-transform: uppercase; cursor: pointer; user-select: none;}
+        td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        tr:hover { background-color: var(--row-hover); }
+        tr.category-retroativo { background-color: var(--row-retro); }
+        
+        .val-money { font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+        .status-badge { padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: white; cursor: pointer; border: none; width: 100%; max-width: 100px;}
+        .status-pago { background-color: var(--status-pago); }
+        .status-pendente { background-color: var(--status-pendente); }
+        .acoes-td { display: flex; gap: 5px; }
+        .btn-acao { color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; flex: 1;}
+        .btn-editar { background-color: #3498db; }
+        .btn-excluir { background-color: var(--accent-red); }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            form { grid-template-columns: 1fr; }
+            .botoes-form { flex-direction: column; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls-group { flex-direction: column; align-items: flex-start; }
+            .header-actions { width: 100%; justify-content: space-between; }
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; background-color: var(--bg-element); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+            td { border: none; border-bottom: 1px solid var(--border-color); position: relative; padding-left: 50%; text-align: right; min-height: 45px; display: flex; justify-content: space-between; align-items: center;}
+            td::before { content: attr(data-label); position: absolute; left: 15px; width: 45%; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; color: var(--primary-color); }
+            .acoes-td { justify-content: flex-end; width: 50%; gap: 10px;}
+            .status-badge { margin-left: auto; max-width: none;}
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-titles">
+            <h1>Gestor Financeiro PRO</h1>
+            <p>Conectado à Nuvem (Supabase)</p>
+        </div>
+        <div class="header-actions">
+            <div class="user-email" id="info-usuario">Carregando...</div>
+            <button class="btn-icon" id="theme-toggle" onclick="toggleTheme()" title="Alternar Tema">🌙</button>
+            <button class="btn-icon" onclick="fazerLogout()" title="Sair (Logout)" style="color: var(--accent-red);">🚪</button>
+        </div>
+    </header>
+
+    <section class="form-section">
+        <h3 id="form-title" style="color: var(--primary-color); margin-bottom: 15px;">➕ Nova Despesa</h3>
+        <form id="form-despesa">
+            <input type="hidden" id="input-id">
+            <div class="form-group"><label>Descrição</label><input type="text" id="input-desc" required placeholder="Ex: Conta de Luz"></div>
+            <div class="form-group"><label>Categoria</label>
+                <select id="input-cat" required onchange="verificarParcelamento()">
+                    <option value="Fixo">Fixo</option><option value="Retroativo">Retroativo</option><option value="Parcelamento">Parcelamento</option>
+                </select>
+            </div>
+            <div class="form-group" id="grupo-parcelas" style="display: none;"><label>Nº Parcelas</label><input type="number" id="input-parcelas" min="1" value="1"></div>
+            <div class="form-group"><label>Valor (R$)</label><input type="number" id="input-valor" step="0.01" required placeholder="0.00"></div>
+            <div class="form-group"><label>Mês Ref.</label>
+                <select id="input-mes-ref" required>
+                    <option value="Fevereiro">Fevereiro</option><option value="Março">Março</option><option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Mês Pgto</label>
+                <select id="input-mes-pgto" required>
+                    <option value="Abril">Abril</option><option value="Maio">Maio</option><option value="Junho">Junho</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Status</label>
+                <select id="input-status" required><option value="Pendente" selected>Pendente</option><option value="Pago">Pago</option></select>
+            </div>
+            <div class="form-group botoes-form">
+                <button type="submit" class="btn-salvar" id="btn-salvar">Salvar na Nuvem</button>
+                <button type="button" class="btn-cancelar" id="btn-cancelar" onclick="cancelarEdicao()">Cancelar</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="insights-box" id="caixa-insights">
+        <div class="insights-icon">💡</div>
+        <div class="insights-text">
+            <h4>Análise Automática</h4>
+            <p id="texto-insight">Carregando dados da nuvem...</p>
+        </div>
+    </section>
+
+    <section class="dashboard">
+        <div class="card fixo"><h3 id="label-fixas">Fixas</h3><div class="value" id="card-fixas">R$ 0,00</div></div>
+        <div class="card retro"><h3 id="label-retro">Retroativos</h3><div class="value" id="card-retroativas">R$ 0,00</div></div>
+        <div class="card total"><h3 id="label-total">Total Mês</h3><div class="value" id="card-total">R$ 0,00</div></div>
+        <div class="card pendente"><h3 id="label-pendente">A Pagar</h3><div class="value" id="card-pendente">R$ 0,00</div></div>
+        <div class="card pago"><h3 id="label-pago">Já Pago</h3><div class="value" id="card-pago">R$ 0,00</div></div>
+    </section>
+
+    <section class="charts-container">
+        <div class="chart-box"><canvas id="graficoCategoria"></canvas></div>
+        <div class="chart-box"><canvas id="graficoMeses"></canvas></div>
+    </section>
+
+    <section class="controls">
+        <div class="controls-group">
+            <label style="color: var(--text-muted);">Mês do Caixa:</label>
+            <select id="month-filter">
+                <option value="Todos">Ver Todos</option>
+                <option value="Abril" selected>Abril</option>
+                <option value="Maio">Maio</option>
+                <option value="Junho">Junho</option>
+            </select>
+        </div>
+        <div class="controls-group">
+            <input type="text" id="search-input" class="search-bar" placeholder="🔍 Buscar conta (ex: Luz)..." onkeyup="renderizarInterface()">
+        </div>
+    </section>
+
+    <section class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="ordenarTabela('mesRef')">Mês Ref. ↕</th>
+                    <th onclick="ordenarTabela('desc')">Descrição ↕</th>
+                    <th onclick="ordenarTabela('cat')">Categoria ↕</th>
+                    <th onclick="ordenarTabela('valor')" style="text-align: right;">Valor ↕</th>
+                    <th onclick="ordenarTabela('mesPgto')">Mês Pgto ↕</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: center;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </section>
+</div>
+
+<script>
+    // ==========================================
+    // COLE SUAS CHAVES DO SUPABASE AQUI EMBAIXO:
+    // ==========================================
+    const supabaseUrl = 'https://wmfgttnljcljhresviuw.supabase.co'; 
+    const supabaseKey = 'sb_publishable_jzIwu_Z27ir5YBWrPGO4iw_In0DSd1G'; 
+    const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let despesas = [];
+    let usuarioAtual = null;
+    let chartCat = null; let chartMeses = null;
+    let ordemCrescente = true; let colunaAtual = '';
+    const mesesOrdem = ['Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    // --- AUTENTICAÇÃO E LOGOUT ---
+    async function iniciarApp() {
+        const { data: { session } } = await clienteSupabase.auth.getSession();
+        if (!session) {
+            window.location.href = 'index.html'; // Se não estiver logado, chuta pro Login
+            return;
+        }
+        usuarioAtual = session.user;
+        document.getElementById('info-usuario').textContent = usuarioAtual.email;
+        
+        // Puxa os dados reais da nuvem!
+        await carregarDespesasDoBanco();
+    }
+
+    async function fazerLogout() {
+        await clienteSupabase.auth.signOut();
+        window.location.href = 'index.html';
+    }
+
+    // --- COMUNICAÇÃO COM O BANCO DE DADOS (SUPABASE) ---
+    async function carregarDespesasDoBanco() {
+        // Busca os dados da tabela
+        const { data, error } = await clienteSupabase.from('despesas').select('*');
+        
+        if (error) {
+            console.error("Erro ao carregar dados:", error);
+            alert("Erro ao buscar dados na nuvem!");
+            return;
+        }
+
+        // Converte os nomes das colunas do banco para o padrão que já usávamos no JS
+        despesas = data.map(item => ({
+            id: item.id,
+            desc: item.descricao,
+            cat: item.categoria,
+            valor: parseFloat(item.valor),
+            mesRef: item.mes_ref,
+            mesPgto: item.mes_pgto,
+            status: item.status
+        }));
+
+        renderizarInterface();
+    }
+
+    // --- TEMA ESCURO (Mantido) ---
+    const currentTheme = localStorage.getItem('theme_v6') || 'light';
+    if (currentTheme === 'dark') { document.body.setAttribute('data-theme', 'dark'); }
+    function toggleTheme() {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            document.body.removeAttribute('data-theme'); localStorage.setItem('theme_v6', 'light');
+        } else {
+            document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('theme_v6', 'dark');
+        }
+        renderizarGraficos(despesas);
+    }
+
+    // --- LÓGICA DE INTERFACE (Gráficos, Tabela, Cálculos) ---
+    const formatarMoeda = (valor) => parseFloat(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    function renderizarInterface() {
+        const mesFiltroAtual = document.getElementById('month-filter').value;
+        const termoBusca = document.getElementById('search-input').value.toLowerCase();
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+        
+        let sFixas = 0, sRetro = 0, sTotal = 0, sPendente = 0, sPago = 0;
+        let dadosFiltrados = despesas;
+
+        if (mesFiltroAtual !== 'Todos') dadosFiltrados = dadosFiltrados.filter(d => d.mesPgto === mesFiltroAtual);
+        if (termoBusca) dadosFiltrados = dadosFiltrados.filter(d => d.desc.toLowerCase().includes(termoBusca) || d.cat.toLowerCase().includes(termoBusca));
+
+        dadosFiltrados.forEach(despesa => {
+            sTotal += parseFloat(despesa.valor);
+            if (despesa.cat === 'Retroativo') sRetro += parseFloat(despesa.valor);
+            else sFixas += parseFloat(despesa.valor);
+
+            if (despesa.status === 'Pendente') sPendente += parseFloat(despesa.valor);
+            else sPago += parseFloat(despesa.valor);
+            
+            tbody.innerHTML += `
+                <tr class="category-${despesa.cat.toLowerCase()}">
+                    <td data-label="Mês Ref.">${despesa.mesRef}</td>
+                    <td data-label="Descrição">${despesa.desc}</td>
+                    <td data-label="Categoria">${despesa.cat}</td>
+                    <td data-label="Valor (R$)" class="val-money">${formatarMoeda(despesa.valor)}</td>
+                    <td data-label="Mês Pgto" style="font-weight:bold">${despesa.mesPgto}</td>
+                    <td data-label="Status" style="text-align: right;">
+                        <button class="status-badge ${despesa.status === 'Pago' ? 'status-pago' : 'status-pendente'}" onclick="alternarStatus('${despesa.id}')">${despesa.status}</button>
+                    </td>
+                    <td data-label="Ações" class="acoes-td">
+                        <button class="btn-acao btn-editar" onclick="carregarEdicao('${despesa.id}')">✏️</button>
+                        <button class="btn-acao btn-excluir" onclick="deletarRegistro('${despesa.id}')">❌</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('card-fixas').textContent = formatarMoeda(sFixas);
+        document.getElementById('card-retroativas').textContent = formatarMoeda(sRetro);
+        document.getElementById('card-total').textContent = formatarMoeda(sTotal);
+        document.getElementById('card-pendente').textContent = formatarMoeda(sPendente);
+        document.getElementById('card-pago').textContent = formatarMoeda(sPago);
+
+        gerarInsights(sTotal, sRetro, sPago);
+        renderizarGraficos(dadosFiltrados);
+    }
+
+    function gerarInsights(totalMes, totalRetro, totalPago) {
+        const pInsight = document.getElementById('texto-insight');
+        const mesFiltroAtual = document.getElementById('month-filter').value;
+        if (mesFiltroAtual === 'Todos') { pInsight.innerHTML = "Selecione um mês específico para análises automáticas."; return; }
+        if (totalMes === 0) { pInsight.innerHTML = `Sua tabela de <b>${mesFiltroAtual}</b> está vazia na nuvem. Adicione novas despesas!`; return; }
+
+        const percRetro = ((totalRetro / totalMes) * 100).toFixed(0);
+        const percPago = ((totalPago / totalMes) * 100).toFixed(0);
+        
+        let texto = `Previsão de <b>${mesFiltroAtual}</b>: ${formatarMoeda(totalMes)}. `;
+        if (percRetro > 30) texto += `⚠️ <b>Atenção:</b> Retroativos consomem <b>${percRetro}%</b> do orçamento. `;
+        else if (totalRetro === 0) texto += `✅ <b>Excelente:</b> Nenhum retroativo atrasado pesando no mês! `;
+        
+        if (percPago == 100) texto += `🏆 <b>Parabéns!</b> Contas do mês quitadas.`;
+        else if (percPago > 50) texto += `📈 Você já liquidou <b>${percPago}%</b> das pendências.`;
+        
+        pInsight.innerHTML = texto;
+    }
+
+    function renderizarGraficos(dadosVisiveis) {
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const fontColor = isDark ? '#e0e0e0' : '#333333';
+        Chart.defaults.color = fontColor;
+
+        const categorias = { Fixo: 0, Retroativo: 0, Parcelamento: 0 };
+        dadosVisiveis.forEach(d => categorias[d.cat] += parseFloat(d.valor));
+
+        if (chartCat) chartCat.destroy();
+        chartCat = new Chart(document.getElementById('graficoCategoria'), {
+            type: 'doughnut', data: { labels: ['Fixas', 'Retroativos', 'Parcelas'], datasets: [{ data: [categorias.Fixo, categorias.Retroativo, categorias.Parcelamento], backgroundColor: ['#f1c40f', '#e74c3c', '#3498db'], borderWidth: isDark ? 0 : 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Distribuição Atual' } } }
+        });
+
+        const mesesTotais = { Abril: 0, Maio: 0, Junho: 0 };
+        despesas.forEach(d => { if(mesesTotais[d.mesPgto] !== undefined) mesesTotais[d.mesPgto] += parseFloat(d.valor); });
+
+        if (chartMeses) chartMeses.destroy();
+        chartMeses = new Chart(document.getElementById('graficoMeses'), {
+            type: 'bar', data: { labels: ['Abril', 'Maio', 'Junho'], datasets: [{ label: 'Total Previsto', data: [mesesTotais.Abril, mesesTotais.Maio, mesesTotais.Junho], backgroundColor: isDark ? '#3498db' : '#2c3e50' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Evolução de Gastos' } } }
+        });
+    }
+
+    // --- SALVAR, ATUALIZAR, DELETAR NO BANCO ---
+    function verificarParcelamento() {
+        const cat = document.getElementById('input-cat').value;
+        const inputId = document.getElementById('input-id').value;
+        document.getElementById('grupo-parcelas').style.display = (cat === 'Parcelamento' && !inputId) ? 'flex' : 'none';
+    }
+
+    document.getElementById('form-despesa').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btnSalvar = document.getElementById('btn-salvar');
+        btnSalvar.textContent = 'Enviando p/ Nuvem...'; btnSalvar.disabled = true;
+
+        const idEditando = document.getElementById('input-id').value;
+        const desc = document.getElementById('input-desc').value;
+        const cat = document.getElementById('input-cat').value;
+        const valor = parseFloat(document.getElementById('input-valor').value);
+        let mesRef = document.getElementById('input-mes-ref').value;
+        let mesPgto = document.getElementById('input-mes-pgto').value;
+        const status = document.getElementById('input-status').value;
+        const parcelas = parseInt(document.getElementById('input-parcelas').value) || 1;
+
+        if (idEditando) {
+            // ATUALIZAR (UPDATE) NO BANCO
+            await clienteSupabase.from('despesas').update({
+                descricao: desc, categoria: cat, valor: valor, mes_ref: mesRef, mes_pgto: mesPgto, status: status
+            }).eq('id', idEditando);
+            cancelarEdicao();
+        } else {
+            // INSERIR (CREATE) NO BANCO (Com lógica de parcelas)
+            let registrosParaBanco = [];
+            let idxRef = mesesOrdem.indexOf(mesRef); let idxPgto = mesesOrdem.indexOf(mesPgto);
+            
+            for (let i = 0; i < parcelas; i++) {
+                registrosParaBanco.push({
+                    descricao: parcelas > 1 ? `${desc} (${i+1}/${parcelas})` : desc,
+                    categoria: cat, valor: valor, status: status,
+                    mes_ref: mesesOrdem[idxRef + i] || mesRef,
+                    mes_pgto: mesesOrdem[idxPgto + i] || mesPgto
+                });
+            }
+            await clienteSupabase.from('despesas').insert(registrosParaBanco);
+        }
+        
+        await carregarDespesasDoBanco(); // Recarrega do banco pra atualizar a tela
+        document.getElementById('form-despesa').reset(); verificarParcelamento();
+        btnSalvar.textContent = 'Salvar na Nuvem'; btnSalvar.disabled = false;
+    });
+
+    window.carregarEdicao = function(id) {
+        const d = despesas.find(x => x.id === id);
+        document.getElementById('input-id').value = d.id;
+        document.getElementById('input-desc').value = d.desc;
+        document.getElementById('input-cat').value = d.cat;
+        document.getElementById('input-valor').value = d.valor;
+        document.getElementById('input-mes-ref').value = d.mesRef;
+        document.getElementById('input-mes-pgto').value = d.mesPgto;
+        document.getElementById('input-status').value = d.status;
+        
+        document.getElementById('form-title').textContent = '✏️ Editar Despesa';
+        document.getElementById('btn-salvar').textContent = 'Atualizar na Nuvem';
+        document.getElementById('btn-cancelar').style.display = 'block';
+        verificarParcelamento(); window.scrollTo(0, 0);
+    }
+
+    window.cancelarEdicao = function() {
+        document.getElementById('form-despesa').reset(); document.getElementById('input-id').value = '';
+        document.getElementById('form-title').textContent = '➕ Nova Despesa';
+        document.getElementById('btn-salvar').textContent = 'Salvar na Nuvem';
+        document.getElementById('btn-cancelar').style.display = 'none';
+        verificarParcelamento();
+    }
+
+    window.deletarRegistro = async function(id) {
+        if(confirm('Tem certeza que deseja apagar do banco de dados?')) { 
+            await clienteSupabase.from('despesas').delete().eq('id', id);
+            await carregarDespesasDoBanco();
+        }
+    };
+
+    window.alternarStatus = async function(id) {
+        const item = despesas.find(d => d.id === id);
+        const novoStatus = item.status === 'Pendente' ? 'Pago' : 'Pendente';
+        // Atualiza a linha no banco onde o id é igual ao id clicado
+        await clienteSupabase.from('despesas').update({ status: novoStatus }).eq('id', id);
+        await carregarDespesasDoBanco();
+    }
+
+    window.ordenarTabela = function(coluna) {
+        ordemCrescente = (colunaAtual === coluna) ? !ordemCrescente : true;
+        colunaAtual = coluna;
+        despesas.sort((a, b) => {
+            let valA = a[coluna], valB = b[coluna];
+            if (coluna === 'valor') { valA = parseFloat(valA); valB = parseFloat(valB); }
+            if (valA < valB) return ordemCrescente ? -1 : 1;
+            if (valA > valB) return ordemCrescente ? 1 : -1;
+            return 0;
+        });
+        renderizarInterface();
+    }
+
+    document.getElementById('month-filter').addEventListener('change', renderizarInterface);
+
+    // INICIA O APP (Verifica login e puxa dados)
+    iniciarApp();
+
+</script>
+</body>
+</html>
