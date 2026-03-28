@@ -111,7 +111,6 @@
             <header>
                 <div class="header-titles">
                     <h1>Gestor Financeiro PRO</h1>
-                    <p>Conectado à Nuvem (Supabase)</p>
                 </div>
                 <div class="header-actions">
                     <div class="user-email"
@@ -454,42 +453,61 @@
     document.getElementById('form-despesa').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btnSalvar = document.getElementById('btn-salvar');
-        btnSalvar.textContent = 'Enviando p/ Nuvem...'; btnSalvar.disabled = true;
+        btnSalvar.textContent = 'Enviando p/ Nuvem...'; 
+        btnSalvar.disabled = true;
 
-        const idEditando = document.getElementById('input-id').value;
-        const desc = document.getElementById('input-desc').value;
-        const cat = document.getElementById('input-cat').value;
-        const valor = parseFloat(document.getElementById('input-valor').value);
-        let mesRef = document.getElementById('input-mes-ref').value;
-        let mesPgto = document.getElementById('input-mes-pgto').value;
-        const status = document.getElementById('input-status').value;
-        const parcelas = parseInt(document.getElementById('input-parcelas').value) || 1;
+        try {
+            const idEditando = document.getElementById('input-id').value;
+            const desc = document.getElementById('input-desc').value;
+            const cat = document.getElementById('input-cat').value;
+            const valor = parseFloat(document.getElementById('input-valor').value);
+            let mesRef = document.getElementById('input-mes-ref').value;
+            let mesPgto = document.getElementById('input-mes-pgto').value;
+            const status = document.getElementById('input-status').value;
+            const parcelas = parseInt(document.getElementById('input-parcelas').value) || 1;
 
-        if (idEditando) {
-            // ATUALIZAR (UPDATE) NO BANCO
-            await clienteSupabase.from('despesas').update({
-                descricao: desc, categoria: cat, valor: valor, mes_ref: mesRef, mes_pgto: mesPgto, status: status
-            }).eq('id', idEditando);
-            cancelarEdicao();
-        } else {
-            // INSERIR (CREATE) NO BANCO (Com lógica de parcelas)
-            let registrosParaBanco = [];
-            let idxRef = mesesOrdem.indexOf(mesRef); let idxPgto = mesesOrdem.indexOf(mesPgto);
-            
-            for (let i = 0; i < parcelas; i++) {
-                registrosParaBanco.push({
-                    descricao: parcelas > 1 ? `${desc} (${i+1}/${parcelas})` : desc,
-                    categoria: cat, valor: valor, status: status,
-                    mes_ref: mesesOrdem[idxRef + i] || mesRef,
-                    mes_pgto: mesesOrdem[idxPgto + i] || mesPgto
-                });
+            if (idEditando) {
+                // ATUALIZAR (UPDATE)
+                const { error } = await clienteSupabase.from('despesas').update({
+                    descricao: desc, categoria: cat, valor: valor, mes_ref: mesRef, mes_pgto: mesPgto, status: status
+                }).eq('id', idEditando);
+                
+                if (error) throw error; // Se der erro, pula direto pro aviso vermelho
+                cancelarEdicao();
+            } else {
+                // INSERIR (CREATE)
+                let registrosParaBanco = [];
+                let idxRef = mesesOrdem.indexOf(mesRef); 
+                let idxPgto = mesesOrdem.indexOf(mesPgto);
+                
+                for (let i = 0; i < parcelas; i++) {
+                    registrosParaBanco.push({
+                        user_id: usuarioAtual.id, // <-- A CHAVE DE SEGURANÇA ESTÁ AQUI AGORA!
+                        descricao: parcelas > 1 ? `${desc} (${i+1}/${parcelas})` : desc,
+                        categoria: cat, valor: valor, status: status,
+                        mes_ref: mesesOrdem[idxRef + i] || mesRef,
+                        mes_pgto: mesesOrdem[idxPgto + i] || mesPgto
+                    });
+                }
+                
+                const { error } = await clienteSupabase.from('despesas').insert(registrosParaBanco);
+                if (error) throw error; // Se der erro, pula direto pro aviso vermelho
             }
-            await clienteSupabase.from('despesas').insert(registrosParaBanco);
+            
+            // Se tudo deu certo, atualiza a tela
+            await carregarDespesasDoBanco(); 
+            document.getElementById('form-despesa').reset(); 
+            verificarParcelamento();
+            
+        } catch (erro) {
+            // SE ALGUMA COISA DER ERRADO, ELE AVISA NA TELA E NÃO TRAVA O BOTÃO
+            console.error(erro);
+            alert("❌ Erro ao salvar na Nuvem: " + erro.message);
+        } finally {
+            // INDEPENDENTE DE DAR CERTO OU ERRADO, O BOTÃO VOLTA AO NORMAL
+            btnSalvar.textContent = 'Salvar na Nuvem'; 
+            btnSalvar.disabled = false;
         }
-        
-        await carregarDespesasDoBanco(); // Recarrega do banco pra atualizar a tela
-        document.getElementById('form-despesa').reset(); verificarParcelamento();
-        btnSalvar.textContent = 'Salvar na Nuvem'; btnSalvar.disabled = false;
     });
 
     window.carregarEdicao = function(id) {
